@@ -8,7 +8,8 @@ from commands.pull import exec_pull
 
 
 @click.group()
-def cli():
+@click.option("--cpu", default=0.1, help="CPU limitation")
+def cli(cpu):
     pass
 
 
@@ -24,8 +25,9 @@ def pull():
 
 @click.command(context_settings={'ignore_unknown_options': True})
 @click.argument("command", nargs=-1)
-def run(command):
-    exec_run(command)
+@click.option("--cpu", default=0.1, help="CPU limitation")
+def run(command, cpu):
+    exec_run(command, cpu)
 
 
 cli.add_command(images)
