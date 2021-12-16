@@ -32,7 +32,8 @@ def find_images() -> List[data.Image]:
         working_dir = state['config']['WorkingDir']
         working_dir = working_dir if working_dir else None
 
-        image = data.Image(manifest['name'], manifest['tag'], size, cmd, image_dir, working_dir)
+        image = data.Image(
+            manifest['name'], manifest['tag'], size, cmd, image_dir, working_dir)
         images.append(image)
 
     return images

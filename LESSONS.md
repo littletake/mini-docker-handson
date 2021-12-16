@@ -1,6 +1,6 @@
 # Lessons
 
-## Lesson 0. Lessonで使用するファイルを眺めてみよう
+## Lesson 0. 準備
 
 ```
 /
@@ -18,11 +18,10 @@
 
 - mini-docker ファイル
 
-mini-docker コマンド受け付けるpythonファイルです。
-このファイルが、コマンドを、各関数にマッピングシています。
+mini-docker コマンド受け付けるpythonファイル
 
 - commands ディレクトリ
-コマンドラインの操作の実装ファイルが置いてあります。
+コマンドラインの操作の実装ファイルが置いてある
 
 コマンドとの対応関係 (詳細は、mini-docker ファイルを参照)
 
@@ -33,7 +32,7 @@ mini-docker コマンド受け付けるpythonファイルです。
 | ./mini-docker run    | commands/run.py    |
 
 
-以下は、Lessonを進めるときに使用するヘルパーファイルです (参照するレッスンで後述します)
+以下は、Lessonを進めるときに使用するヘルパーファイル
 - commands/config.py
 - commands/data.py
 - commands/fetch.py
@@ -41,23 +40,23 @@ mini-docker コマンド受け付けるpythonファイルです。
 - commands/local.py
 
 
-## Lesson 1. 子プロセスを立ち上げてみよう
+## Lesson 1. 子プロセスを立ち上げる
 
 ※ 以降のレッスンでのコマンドラインの実行に関して
-- コマンドラインの操作はvagrant環境の中で実行することとします (`vagrant ssh`)
-- vagrant内で、root権限を有していることとします (`sudo su -`)
+- コマンドラインの操作はvagrant環境の中で実行する(`vagrant ssh`)
+- vagrant内で、root権限を有していることとする (`sudo su -`)
 
-### clone システムコールとはなにか確認してみよう
+### clone システムコールの確認
 
 - ドキュメント https://linuxjm.osdn.jp/html/LDP_man-pages/man2/clone.2.html
 
-### 1-1. clone システムコールを呼び出してみよう
+### 1-1. clone システムコールを呼び出す
 
 #### 実装
 - ファイル `commands/run.py`
 - 使用するモジュール `linux`
 - 使用する関数 
-  ```
+  ```python
   linux.clone(
     callback: Callable[[], None], 
     flags: int, 
@@ -66,13 +65,13 @@ mini-docker コマンド受け付けるpythonファイルです。
   ```
 
 #### 確認 (VM)
-```shell
+```bash
 cd /vagrant
 
 ./mini-docker run
 ```
 
-### 1-2.子プロセスでコマンドを受け取れるようにしてみよう
+### 1-2.子プロセスでコマンドを受け取れる
 
 #### 実装①
 - ファイル `mini-docker`
@@ -94,13 +93,13 @@ cd /vagrant
 
 
 #### 確認 (VM)
-```shell
+```bash
 cd /vagrant
 ./mini-docker echo hello world
 # ---> hello world
 ```
 
-### 1-3. 子プロセスでpidを出力して、確認してみよう
+### 1-3. 子プロセスでpidを出力し確認
 
 #### 実装
 - ファイル `commands/run.py`
@@ -108,24 +107,26 @@ cd /vagrant
 - 使用する関数 `os.getpid()`
 
 #### 確認 (VM)
-```shell
+```bash
 cd /vagrant
 
 ps
 # --->
-#    PID TTY      STAT   TIME COMMAND
-#    701 tty1     Ss+    0:00 /sbin/agetty -o -p -- \u --noclear tty1 linux
-#  50902 pts/0    Ss     0:00 -bash
-#  50954 pts/0    R+     0:00 ps a
- 
+#   PID TTY          TIME CMD
+# 43963 pts/0    00:00:00 sudo
+# 43964 pts/0    00:00:00 su
+# 43965 pts/0    00:00:00 bash
+# 44061 pts/0    00:00:00 ps
+
 ./mini-docker run
-# ---> pid: ???
+# ---> 
+# pid: 44064
 ```
 
 
-## Lesson 2. プロセスを隔離してみよう
+## Lesson 2. プロセスを隔離
 
-### 2-1. cgroupを利用してcpuを制限してみよう
+### 2-1. cgroupを利用してcpuを制限
 
 #### 実装
 - ファイル `commands/run.py`
@@ -136,7 +137,7 @@ ps
     - `CGroup.set_cpu_limit(cpu: float)`
     - `CGroup.add(pid: int)`
 
-### 2-2. コマンドラインのオプションからcpu上限を設定できるようにしてみよう
+### 2-2. コマンドラインのオプションからcpu上限を設定できるように変更
 
 #### 実装
 - ファイル 
@@ -151,7 +152,7 @@ VMに2つのターミナルからsshする
 - 1. 確認用のVM
 - 2. プロセス立ち上げ用のVM
 
-```shell
+```bash
 # 1. 確認用のVM
 cd /vagrant
 
@@ -160,7 +161,7 @@ s-tui
 参照: [amanusk/s-tui](https://github.com/amanusk/s-tui)
 
 
-```shell
+```bash
 # 2. プロセス立ち上げ用のVM
 cd /vagrant
 
@@ -173,7 +174,11 @@ cd /vagrant
 ^C
 ```
 
-### 2-3. UTS名前空間を分離させてみよう
+結果  
+指示通り50%制限 -> 10%制限ができている 
+![CPU制御](./results/cpu_limitation2.png)
+
+### 2-3. UTS名前空間を分離させる
 
 #### 実装①
 - ファイル `commands/run.py`
@@ -187,22 +192,25 @@ cd /vagrant
 - 使用する関数 `linux.sethostname(hostname: str)`
 
 #### 確認
+プロセスでのhostname変更が、host側と分離されていることを確認
 
-```shell
+```bash
 cd /vagrant
 
 hostname
-# ---> vagrant
+# ---> 
+# vagrant
 
 ./mini-docker run
-# ---> set hostname: "container"
+# ---> 
+# set hostname: "container"
 
 hostname
-# ---> vagrant
-# プロセスでのhostname変更が、host側と分離されていることを確認
+# ---> 
+# vagrant
 ```
 
-### 2-4. PID名前空間を分離させてみよう
+### 2-4. PID名前空間を分離させる
 
 #### 実装①
 - ファイル `commands/run.py`
@@ -217,48 +225,51 @@ hostname
 
 
 #### 確認
+子プロセスのpidがhost側と分離されていることを確認
 
-```shell
+```bash
 cd /vagrant
 
 ps a
-#    PID TTY      STAT   TIME COMMAND
-#    701 tty1     Ss+    0:00 /sbin/agetty -o -p -- \u --noclear tty1 linux
-#  50902 pts/0    Ss     0:00 -bash
-#  50954 pts/0    R+     0:00 ps a
+# --->
+#   PID TTY      STAT   TIME COMMAND
+#   706 tty1     Ss+    0:00 /sbin/agetty -o -p -- \u --noclear tty1 linux
+# 43950 pts/0    Ss     0:00 -bash
+# 43963 pts/0    S      0:00 sudo su -
+# 43964 pts/0    S      0:00 su -
+# 43965 pts/0    S      0:00 -bash
+# 44085 pts/0    R+     0:00 ps a
 
-
-./mini-docker run
-# ---> pid: 1
-# 子プロセスのpidがhost側と分離されていることを確認
+./mini-docker run 
+# ---> pid: 44088
 ```
 
 
-## Lesson 3. OverlayFs を使用してファイルをマウントしてみよう
+## Lesson 3. OverlayFs を使用してファイルをマウントする
 
-### 3-1. pythonからイメージを扱ってみよう
+### 3-1. pythonからイメージを扱う
 
-#### 準備 コンテナに使用するイメージを取得しよう
+#### 準備 コンテナに使用するイメージを取得する
 
 - 使用するコマンド 
-```shell
+```bash
 ./mini-docker pull busybox
 ```
 
 - 確認 
-```shell
+```bash
 ls /var/opt/app/images/library_busybox_latest/contents/
 ```
 
-#### 実装 busybox イメージをpythonから取得してみよう
+#### 実装 busybox イメージをpythonから取得する
 
 - ファイル `commands/run.py`
 - 使用するモジュール `commands.local as local`
 - 使用する関数 `local.find_images()`
 
-### 3-2. イメージのファイル群をOverlayFsとしてマウントしてみよう
+### 3-2. イメージのファイル群をOverlayFsとしてマウントする
 
-#### 実装① コンテナ用のディレクトリを用意しよう
+#### 実装① コンテナ用のディレクトリを用意
 - 使用するモジュール `commands.data`
 - 使用するクラス 
   - `Image`
@@ -277,7 +288,7 @@ ls /var/opt/app/images/library_busybox_latest/contents/
 mount -t overlay | cut -d ' ' -f 3 | xargs -I@@ umount -f @@
 ```
 
-#### 実装② 準備したディレクトリ群をoverlayfsとしてマウントしてみよう
+#### 実装② 準備したディレクトリ群をoverlayfsとしてマウントする
 
 - 使用するモジュール 
   - `linux`
@@ -311,7 +322,7 @@ mount -t overlay | cut -d ' ' -f 3 | xargs -I@@ umount -f @@
 
 ### overlayfsの動作確認 (VM)
 
-```shell
+```bash
 cd /vagrant
 
 ./mini-docker run busybox /bin/sh
@@ -375,12 +386,12 @@ ls -la /var/opt/app/container/library-busybox_latest_<container_id>/
 ```
 
 
-## Lesson 4. dockerイメージを指定して動かしてみよう
+## Lesson 4. dockerイメージを指定して動かす
 
-### 4-1. コマンドラインからイメージ名を指定できるようにしてみよう
+### 4-1. コマンドラインからイメージ名を指定できるように変更
 
 #### 動作確認
-```shell
+```bash
 # alpineコンテナを実行する
 ./mini-docker pull alpine
 ./mini-docker run alpine ash
@@ -388,21 +399,13 @@ ls -la /var/opt/app/container/library-busybox_latest_<container_id>/
 # hello-worldコンテナを実行する
 ./mini-docker pull hello-world
 ./mini-docker run hello-world /hello
-
 ```
 
-### 4-2. manifest.jsonのCMDをデフォルトコマンドとして使用できるようにシてみよう
+### 4-2. manifest.jsonのCMDをデフォルトコマンドとして使用できるように変更
 
 #### 動作確認
-```shell
+```bash
 ./mini-docker run alpine
 
 ./mini-docker run hello-world
 ```
-
----
-
-今後の展望
-
-- /dev/nullなどのデバイスをマウントしよう
-- ポートフォワードでwebサーバーを起動してみよう

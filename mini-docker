@@ -8,8 +8,8 @@ from commands.pull import exec_pull
 
 
 @click.group()
-@click.option("--cpu", default=0.1, help="CPU limitation")
-def cli(cpu):
+# @click.option("--cpu", default=0.1, help="CPU limitation")
+def cli():
     pass
 
 
@@ -19,15 +19,21 @@ def images():
 
 
 @click.command()
-def pull():
-    exec_pull()
+@click.argument("image_name")
+def pull(image_name):
+    exec_pull(image_name)
 
 
+# 引数はdockerコマンドの順番に準拠
 @click.command(context_settings={'ignore_unknown_options': True})
-@click.argument("command", nargs=-1)
-@click.option("--cpu", default=0.1, help="CPU limitation")
-def run(command, cpu):
-    exec_run(command, cpu)
+@click.argument("image_name")
+@click.argument("commands", nargs=-1)
+@click.option("--cpu", default=None, type=float)
+def run(image_name, commands, cpu):
+    exec_run(
+        commands=commands,
+        cpu=cpu,
+        image_name=image_name)
 
 
 cli.add_command(images)
