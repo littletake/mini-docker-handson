@@ -37,10 +37,7 @@ def _fetch_layer(library: str, image: str, layer_digest: str, token: str) -> Ite
             yield chunk
 
 
-def exec_pull():
-    print(f'pull command called!')
-    return
-
+def exec_pull(image_name: str):
     registry, image, tag = fmt.parse_image_opt(image_name)
     print(f'pulling {registry}/{image}:{tag} ...')
 
@@ -63,7 +60,8 @@ def exec_pull():
         os.makedirs(image_base_dir)
 
     with open(os.path.join(image_base_dir, 'manifest.json'), 'w') as manifest_file:
-        json_txt = json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True, separators=(',', ': '))
+        json_txt = json.dumps(manifest, ensure_ascii=False,
+                              indent=2, sort_keys=True, separators=(',', ': '))
         manifest_file.write(json_txt)
 
     # Docker image を構成する各イメージ・レイヤを取得して保存
