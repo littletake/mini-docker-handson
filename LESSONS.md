@@ -485,12 +485,3 @@ ls -la /var/opt/app/container/library-alpine_latest_3d1f2531-1408-474e-9ca5-0d2f
 ./mini-docker pull hello-world
 ./mini-docker run hello-world /hello
 ```
-
-### 4-2. manifest.jsonのCMDをデフォルトコマンドとして使用できるように変更
-
-#### 動作確認
-```bash
-./mini-docker run alpine
-
-./mini-docker run hello-world
-```
