@@ -94,6 +94,5 @@ def mount():
         _container.root_dir,
         "overlay",
         linux.MS_NODEV,
-        # TODO: lowerdirとupperdirの役割、意味を調べる
         f"lowerdir={_image[0].content_dir},upperdir={_container.rw_dir},workdir={_container.work_dir}"
     )

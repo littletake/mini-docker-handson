@@ -296,7 +296,20 @@ mount -t overlay | cut -d ' ' -f 3 | xargs -I@@ umount -f @@
 - 使用するクラス
   - `data.Image`
   - `data.Container`
-- 使用する関数
+- 使用する関数  
+overlayfsの仕組みを考えて実装する
+  <details>
+  <summary>実装例</summary>
+
+  ```python
+  rootdir  =  _container.root_dir
+  lowerdir = _image[0].content_dir
+  upperdir = _container.rw_dir
+  workdir  = _container.work_dir
+  ```
+
+  </details>
+
   ```python
   rootdir = '???'
   lowerdir = '???'
@@ -323,68 +336,140 @@ mount -t overlay | cut -d ' ' -f 3 | xargs -I@@ umount -f @@
 ### overlayfsの動作確認 (VM)
 
 ```bash
-cd /vagrant
-
 ./mini-docker run busybox /bin/sh
 
-# 〜〜〜 プロセス内の処理 〜〜〜
+parent_pid: 40352
+child_pid: 40354
 
+# -- プロセス内の処理 --
 ls -la
 # --->
-# total 68
-# drwxr-xr-x    1 root     root          4096 Jul 13 03:05 .
-# drwxr-xr-x    1 root     root          4096 Jul 13 03:05 ..
-# drwxr-xr-x    2 root     root          4096 Jun 15 14:34 bin
-# drwxr-xr-x    2 root     root          4096 Jun 15 14:34 dev
-# ...
+# total 48
+# drwxr-xr-x    1 root     root          4096 Dec 13 13:43 .
+# drwxr-xr-x    1 root     root          4096 Dec 13 13:43 ..
+# drwxr-xr-x    2 root     root         12288 Dec  7 00:20 bin
+# drwxr-xr-x    2 root     root          4096 Dec  7 00:20 dev
+# drwxr-xr-x    3 root     root          4096 Dec  7 00:21 etc
+# drwxr-xr-x    2 nobody   nobody        4096 Dec  7 00:20 home
+# drwx------    1 root     root          4096 Dec 13 13:43 root
+# drwxrwxrwt    2 root     root          4096 Dec  7 00:20 tmp
+# drwxr-xr-x    3 root     root          4096 Dec  7 00:20 usr
+# drwxr-xr-x    4 root     root          4096 Dec  7 00:20 var
 
-echo 'this file is created from container' > tmp.txt 
+echo 'this file is created from container' > tmp.txt
+cat tmp.txt
+# --->
+# this file is created from container
 
+## ＊tmp.txtが存在することを確認
 ls -la
 # --->
-# drwxr-xr-x    1 root     root          4096 Jul 15 12:48 .
-# drwxr-xr-x    1 root     root          4096 Jul 15 12:48 ..
-# drwxr-xr-x    2 root     root         12288 Jun  7 17:34 bin
-# drwxr-xr-x    2 root     root          4096 Jun  7 17:34 dev
-# ...
-# drwxrwxrwt    2 root     root          4096 Jun  7 17:34 tmp
-# ...
+# total 52
+# drwxr-xr-x    1 root     root          4096 Dec 13 13:44 .
+# drwxr-xr-x    1 root     root          4096 Dec 13 13:44 ..
+# drwxr-xr-x    2 root     root         12288 Dec  7 00:20 bin
+# drwxr-xr-x    2 root     root          4096 Dec  7 00:20 dev
+# drwxr-xr-x    3 root     root          4096 Dec  7 00:21 etc
+# drwxr-xr-x    2 nobody   nobody        4096 Dec  7 00:20 home
+# drwx------    1 root     root          4096 Dec 13 13:43 root
+# drwxrwxrwt    2 root     root          4096 Dec  7 00:20 tmp
+# -rw-r--r--    1 root     root            36 Dec 13 13:44 tmp.txt
+# drwxr-xr-x    3 root     root          4096 Dec  7 00:20 usr
+# drwxr-xr-x    4 root     root          4096 Dec  7 00:20 var
 
 exit
 
-# 〜〜〜 host の処理 〜〜〜
-
-# tmp.txtがないことを確認
-
+# -- ホスト上での処理
+## *tmp.txtがないことを確認
 ls -la  /var/opt/app/images/library_busybox_latest/contents/
 # --->
-# drwxr-xr-x 10 root   root     4096 Jul 15 10:31 .
-# drwxr-xr-x  4 root   root     4096 Jul 15 10:31 ..
-# drwxr-xr-x  2 root   root    12288 Jun  7 17:34 bin
-# drwxr-xr-x  2 root   root     4096 Jun  7 17:34 dev
-# drwxr-xr-x  3 root   root     4096 Jun  7 17:34 etc
-# drwxr-xr-x  2 nobody nogroup  4096 Jun  7 17:34 home
-# drwx------  2 root   root     4096 Jun  7 17:34 root
-# drwxrwxrwt  2 root   root     4096 Jun  7 17:34 tmp
-# drwxr-xr-x  3 root   root     4096 Jun  7 17:34 usr
-# drwxr-xr-x  4 root   root     4096 Jun  7 17:34 var
+# total 48
+# drwxr-xr-x 10 root   root     4096 Dec 13 12:14 .
+# drwxr-xr-x  4 root   root     4096 Dec 13 12:14 ..
+# drwxr-xr-x  2 root   root    12288 Dec  7 00:20 bin
+# drwxr-xr-x  2 root   root     4096 Dec  7 00:20 dev
+# drwxr-xr-x  3 root   root     4096 Dec  7 00:21 etc
+# drwxr-xr-x  2 nobody nogroup  4096 Dec  7 00:20 home
+# drwx------  2 root   root     4096 Dec  7 00:20 root
+# drwxrwxrwt  2 root   root     4096 Dec  7 00:20 tmp
+# drwxr-xr-x  3 root   root     4096 Dec  7 00:20 usr
+# drwxr-xr-x  4 root   root     4096 Dec  7 00:20 var
 
-# tmp.txtはどこへ？
-
-ls -la /var/opt/app/container/library-busybox_latest_<container_id>/
-# ---> 
-# drwxr-xr-x 1 root   root     4096 Jul 15 12:56 .
-# drwxr-xr-x 3 root   root     4096 Jul 15 12:56 ..
-# drwxr-xr-x 2 root   root    12288 Jun  7 17:34 bin
-# drwxr-xr-x 2 root   root     4096 Jun  7 17:34 dev
-# ...
-# -rw-r--r-- 1 root   root       36 Jul 15 12:56 tmp.txt
-# ...
-# drwxr-xr-x 3 root   root     4096 Jun  7 17:34 usr
-# drwxr-xr-x 4 root   root     4096 Jun  7 17:34 var
-
+## *tmp.txtが存在することを確認
+ls -la /var/opt/app/container/library-busybox_latest_f438b114-8ace-4877-9879-9007633eefb3/
+# --->
+# total 52
+# drwxr-xr-x 1 root   root     4096 Dec 13 13:44 .
+# drwxr-xr-x 7 root   root     4096 Dec 13 13:43 ..
+# drwxr-xr-x 2 root   root    12288 Dec  7 00:20 bin
+# drwxr-xr-x 2 root   root     4096 Dec  7 00:20 dev
+# drwxr-xr-x 3 root   root     4096 Dec  7 00:21 etc
+# drwxr-xr-x 2 nobody nogroup  4096 Dec  7 00:20 home
+# drwx------ 1 root   root     4096 Dec 13 13:43 root
+# drwxrwxrwt 2 root   root     4096 Dec  7 00:20 tmp
+# -rw-r--r-- 1 root   root       36 Dec 13 13:44 tmp.txt
+# drwxr-xr-x 3 root   root     4096 Dec  7 00:20 usr
+# drwxr-xr-x 4 root   root     4096 Dec  7 00:20 var
 ```
 
+### ＊別のイメージを使って再現を確認
+
+```bash
+./mini-docker run alpine ash
+
+parent_pid: 41286
+child_pid: 41288
+
+echo 'this file is created from alpine-container' > tmp.txt
+exit
+
+ls -la  /var/opt/app/images/library_alpine_latest/contents/
+# --->
+# total 76
+# drwxr-xr-x 19 root root 4096 Dec 13 13:50 .
+# drwxr-xr-x  4 root root 4096 Dec 13 13:50 ..
+# drwxr-xr-x  2 root root 4096 Nov 24 09:20 bin
+# drwxr-xr-x  2 root root 4096 Nov 24 09:20 dev
+# drwxr-xr-x 16 root root 4096 Nov 24 09:20 etc
+# drwxr-xr-x  2 root root 4096 Nov 24 09:20 home
+# drwxr-xr-x  7 root root 4096 Nov 24 09:20 lib
+# drwxr-xr-x  5 root root 4096 Nov 24 09:20 media
+# drwxr-xr-x  2 root root 4096 Nov 24 09:20 mnt
+# drwxr-xr-x  2 root root 4096 Nov 24 09:20 opt
+# dr-xr-xr-x  2 root root 4096 Nov 24 09:20 proc
+# drwx------  2 root root 4096 Nov 24 09:20 root
+# drwxr-xr-x  2 root root 4096 Nov 24 09:20 run
+# drwxr-xr-x  2 root root 4096 Nov 24 09:20 sbin
+# drwxr-xr-x  2 root root 4096 Nov 24 09:20 srv
+# drwxr-xr-x  2 root root 4096 Nov 24 09:20 sys
+# drwxrwxrwt  2 root root 4096 Nov 24 09:20 tmp
+# drwxr-xr-x  7 root root 4096 Nov 24 09:20 usr
+# drwxr-xr-x 12 root root 4096 Nov 24 09:20 var
+
+ls -la /var/opt/app/container/library-alpine_latest_3d1f2531-1408-474e-9ca5-0d2fb672499f/
+# --->
+# total 80
+# drwxr-xr-x  1 root root 4096 Dec 13 13:50 .
+# drwxr-xr-x  8 root root 4096 Dec 13 13:50 ..
+# drwxr-xr-x  2 root root 4096 Nov 24 09:20 bin
+# drwxr-xr-x  2 root root 4096 Nov 24 09:20 dev
+# drwxr-xr-x 16 root root 4096 Nov 24 09:20 etc
+# drwxr-xr-x  2 root root 4096 Nov 24 09:20 home
+# drwxr-xr-x  7 root root 4096 Nov 24 09:20 lib
+# drwxr-xr-x  5 root root 4096 Nov 24 09:20 media
+# drwxr-xr-x  2 root root 4096 Nov 24 09:20 mnt
+# drwxr-xr-x  2 root root 4096 Nov 24 09:20 opt
+# dr-xr-xr-x  2 root root 4096 Nov 24 09:20 proc
+# drwx------  1 root root 4096 Dec 13 13:50 root
+# drwxr-xr-x  2 root root 4096 Nov 24 09:20 run
+# drwxr-xr-x  2 root root 4096 Nov 24 09:20 sbin
+# drwxr-xr-x  2 root root 4096 Nov 24 09:20 srv
+# drwxr-xr-x  2 root root 4096 Nov 24 09:20 sys
+# drwxrwxrwt  2 root root 4096 Nov 24 09:20 tmp
+# -rw-r--r--  1 root root   43 Dec 13 13:50 tmp.txt
+# drwxr-xr-x  7 root root 4096 Nov 24 09:20 usr
+# drwxr-xr-x 12 root root 4096 Nov 24 09:20 var
+```
 
 ## Lesson 4. dockerイメージを指定して動かす
 
